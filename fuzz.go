@@ -33,56 +33,35 @@ func Fuzz(data []byte) int {
 func fuzz(b1 []byte) {
 	var err error
 	for _, ctor := range []func() interface{}{
-		func() interface{} { return nil },
-		func() interface{} { b := true; return b },
-		func() interface{} { b := true; return &b },
-		func() interface{} { i := uint(0); return i },
-		func() interface{} { i := uint(0); return &i },
-		func() interface{} { i := uint8(0); return i },
-		func() interface{} { i := uint8(0); return &i },
-		func() interface{} { i := uint16(0); return i },
-		func() interface{} { i := uint16(0); return &i },
-		func() interface{} { i := uint32(0); return i },
-		func() interface{} { i := uint32(0); return &i },
-		func() interface{} { i := uint64(0); return i },
-		func() interface{} { i := uint64(0); return &i },
-		func() interface{} { i := int(0); return i },
-		func() interface{} { i := int(0); return &i },
-		func() interface{} { i := int8(0); return i },
-		func() interface{} { i := int8(0); return &i },
-		func() interface{} { i := int16(0); return i },
-		func() interface{} { i := int16(0); return &i },
-		func() interface{} { i := int32(0); return i },
-		func() interface{} { i := int32(0); return &i },
-		func() interface{} { i := int64(0); return i },
-		func() interface{} { i := int64(0); return &i },
-		func() interface{} { f := float32(0.0); return f },
-		func() interface{} { f := float32(0.0); return &f },
-		func() interface{} { f := float64(0.0); return f },
-		func() interface{} { f := float64(0.0); return &f },
-		func() interface{} { s := ""; return s },
-		func() interface{} { s := ""; return &s },
-		func() interface{} { b := []byte{}; return b },
-		func() interface{} { b := []byte{}; return &b },
-		func() interface{} { arr := []interface{}{}; return arr },
-		func() interface{} { arr := []interface{}{}; return &arr },
-		func() interface{} { arr := []int{}; return arr },
-		func() interface{} { arr := []int{}; return &arr },
-		func() interface{} { arr := []string{}; return arr },
-		func() interface{} { arr := []string{}; return &arr },
-		func() interface{} { m := map[interface{}]interface{}{}; return m },
-		func() interface{} { m := map[interface{}]interface{}{}; return &m },
-		func() interface{} { m := map[int]interface{}{}; return m },
-		func() interface{} { m := map[int]interface{}{}; return &m },
-		func() interface{} { m := map[string]interface{}{}; return m },
-		func() interface{} { m := map[string]interface{}{}; return &m },
-		func() interface{} { t := time.Time{}; return t },
+		func() interface{} { return new(interface{}) },
+		func() interface{} { return new(bool) },
+		func() interface{} { return new(uint) },
+		func() interface{} { return new(uint8) },
+		func() interface{} { return new(uint16) },
+		func() interface{} { return new(uint32) },
+		func() interface{} { return new(uint64) },
+		func() interface{} { return new(int) },
+		func() interface{} { return new(int8) },
+		func() interface{} { return new(int16) },
+		func() interface{} { return new(int32) },
+		func() interface{} { return new(int64) },
+		func() interface{} { return new(float32) },
+		func() interface{} { return new(float64) },
+		func() interface{} { return new(string) },
+		func() interface{} { return new([]byte) },
+		func() interface{} { return new([]interface{}) },
+		func() interface{} { return new([]int) },
+		func() interface{} { return new([]string) },
+		func() interface{} { return new(map[interface{}]interface{}) },
+		func() interface{} { return new(map[int]interface{}) },
+		func() interface{} { return new(map[string]interface{}) },
+		func() interface{} { return new(time.Time) },
 	} {
 		v1 := ctor()
-		if cbor.Unmarshal(b1, &v1) != nil {
+		if cbor.Unmarshal(b1, v1) != nil {
 			continue
 		}
-		if _, ok := v1.(time.Time); ok {
+		if _, ok := v1.(*time.Time); ok {
 			fuzzTime(b1)
 			continue
 		}
@@ -94,7 +73,7 @@ func fuzz(b1 []byte) {
 			panic(err)
 		}
 		v2 := ctor()
-		if err = cbor.Unmarshal(b2, &v2); err != nil {
+		if err = cbor.Unmarshal(b2, v2); err != nil {
 			panic(err)
 		}
 		if !DeepEqual(v1, v2) {
@@ -103,31 +82,30 @@ func fuzz(b1 []byte) {
 	}
 }
 
-// fuzzTime deserializes-serializes-deserializes cbor data into time.Time
-// and checks that results of first and second deserialization are equal.
+// fuzzTime deserializes-serializes-deserializes cbor data into time.Time.
 func fuzzTime(data []byte) {
-	var t, t1, t2 time.Time
-	var b1, b2 []byte
-	var err error
-	if err = cbor.Unmarshal(data, &t); err != nil {
+	var t time.Time
+	if err := cbor.Unmarshal(data, &t); err != nil {
 		panic(err)
 	}
-	if b1, err = cbor.Marshal(t, cbor.EncOptions{TimeRFC3339: false}); err != nil {
+
+	b1, err := cbor.Marshal(t, cbor.EncOptions{TimeRFC3339: false})
+	if err != nil {
 		panic(err)
 	}
-	if b2, err = cbor.Marshal(t, cbor.EncOptions{TimeRFC3339: true}); err != nil {
-		panic(err)
-	}
+	var t1 time.Time
 	if err = cbor.Unmarshal(b1, &t1); err != nil {
 		panic(err)
 	}
-	if err = cbor.Unmarshal(b2, &t2); err != nil {
-		panic(err)
-	}
-	if !t.Equal(t1) {
-		panic(fmt.Sprintf("not equal: t %v, t1 %v", t, t1))
-	}
-	if !t1.Equal(t2) {
-		panic(fmt.Sprintf("not equal: t1 %v, t2 %v", t1, t2))
+
+	if t.Year() >= 0 && t.Year() < 10000 {
+		b2, err := cbor.Marshal(t, cbor.EncOptions{TimeRFC3339: true})
+		if err != nil {
+			panic(err)
+		}
+		var t2 time.Time
+		if err = cbor.Unmarshal(b2, &t2); err != nil {
+			panic(err)
+		}
 	}
 }

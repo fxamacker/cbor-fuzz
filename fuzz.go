@@ -97,15 +97,16 @@ func fuzzTime(data []byte) {
 	if err = cbor.Unmarshal(b1, &t1); err != nil {
 		panic(err)
 	}
-
-	if t.Year() >= 0 && t.Year() < 10000 {
-		b2, err := cbor.Marshal(t, cbor.EncOptions{TimeRFC3339: true})
-		if err != nil {
-			panic(err)
+	/*
+		if t.Year() >= 0 && t.Year() < 10000 {
+			b2, err := cbor.Marshal(t, cbor.EncOptions{TimeRFC3339: true})
+			if err != nil {
+				panic(err)
+			}
+			var t2 time.Time
+			if err = cbor.Unmarshal(b2, &t2); err != nil {
+				panic(err)
+			}
 		}
-		var t2 time.Time
-		if err = cbor.Unmarshal(b2, &t2); err != nil {
-			panic(err)
-		}
-	}
+	*/
 }

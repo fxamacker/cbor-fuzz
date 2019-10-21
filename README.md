@@ -1,6 +1,6 @@
 # cbor-fuzz
 
-`cbor-fuzz` performs fuzz testing for package [`cbor`](https://github.com/fxamacker/cbor), a [CBOR](http://tools.ietf.org/html/rfc7049) encoding and decoding package written in Go.  `corpus` folder contains [RFC 7049 test examples](https://tools.ietf.org/html/rfc7049#appendix-A).
+cbor-fuzz performs fuzzing for [fxamacker/cbor](https://github.com/fxamacker/cbor), a [CBOR](http://tools.ietf.org/html/rfc7049) encoding and decoding package written in Go.  The corpus folder contains [RFC 7049 test data](https://tools.ietf.org/html/rfc7049#appendix-A).
 
 ## Installation 
 

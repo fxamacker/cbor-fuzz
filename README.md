@@ -17,16 +17,17 @@ go-fuzz-build .
 go-fuzz
 ```
 
-## Example output (fxamacker/cbor v1.1.1)
+## Example output 
+Output from cbor-fuzz v0.6.0 fuzzing fxamacker/cbor v1.1.2.
 
 ```
-2019/10/20 18:12:03 workers: 2, corpus: 493 (19h3m ago), crashers: 0, restarts: 1/10000, execs: 1432146987 (13825/sec), cover: 1431, uptime: 28h46m
-2019/10/20 18:12:06 workers: 2, corpus: 494 (1s ago), crashers: 0, restarts: 1/10000, execs: 1432193155 (13825/sec), cover: 1431, uptime: 28h46m
-2019/10/20 18:12:09 workers: 2, corpus: 495 (0s ago), crashers: 0, restarts: 1/10000, execs: 1432239767 (13825/sec), cover: 1431, uptime: 28h46m
+2019/10/23 00:11:35 workers: 2, corpus: 506 (4h8m ago), crashers: 0, restarts: 1/10000, execs: 365720137 (14707/sec), cover: 1437, uptime: 6h54m
+2019/10/23 00:11:38 workers: 2, corpus: 507 (2s ago), crashers: 0, restarts: 1/10000, execs: 365757046 (14707/sec), cover: 1437, uptime: 6h54m
+2019/10/23 00:11:41 workers: 2, corpus: 507 (5s ago), crashers: 0, restarts: 1/10000, execs: 365801516 (14707/sec), cover: 1437, uptime: 6h54m
 ...
-2019/10/20 22:26:24 workers: 2, corpus: 495 (4h14m ago), crashers: 0, restarts: 1/10000, execs: 1642869630 (13823/sec), cover: 1431, uptime: 33h0m
-2019/10/20 22:26:27 workers: 2, corpus: 495 (4h14m ago), crashers: 0, restarts: 1/10000, execs: 1642906722 (13823/sec), cover: 1431, uptime: 33h0m
-2019/10/20 22:26:30 workers: 2, corpus: 495 (4h14m ago), crashers: 0, restarts: 1/10000, execs: 1642945269 (13823/sec), cover: 1431, uptime: 33h0m
+2019/10/23 17:27:32 workers: 2, corpus: 507 (17h15m ago), crashers: 0, restarts: 1/10000, execs: 1222929112 (14053/sec), cover: 1437, uptime: 24h10m
+2019/10/23 17:27:35 workers: 2, corpus: 507 (17h15m ago), crashers: 0, restarts: 1/10000, execs: 1222972965 (14053/sec), cover: 1437, uptime: 24h10m
+2019/10/23 17:27:38 workers: 2, corpus: 507 (17h16m ago), crashers: 0, restarts: 1/10000, execs: 1223010097 (14053/sec), cover: 1437, uptime: 24h10m
 ```
 
 ## License 

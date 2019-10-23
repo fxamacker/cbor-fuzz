@@ -1,6 +1,6 @@
 # cbor-fuzz
 
-cbor-fuzz performs fuzzing for my CBOR library ([fxamacker/cbor](https://github.com/fxamacker/cbor)).  It may be useful for other CBOR libraries. 
+cbor-fuzz performs fuzzing for my [CBOR library](https://github.com/fxamacker/cbor) (fxamacker/cbor).  It may be useful for other CBOR libraries. 
 
 The corpus folder contains [RFC 7049 test data](https://tools.ietf.org/html/rfc7049#appendix-A) as seed (except test value -18446744073709551616, which cannot fit into Go's int64 data type.)
 

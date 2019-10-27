@@ -7,6 +7,8 @@ The corpus folder contains [RFC 7049 test data](https://tools.ietf.org/html/rfc7
 ## Installation 
 
 ```
+go get -u github.com/dvyukov/go-fuzz/go-fuzz github.com/dvyukov/go-fuzz/go-fuzz-build
+go get github.com/fxamacker/cbor 
 go get github.com/fxamacker/cbor-fuzz
 ``` 
 

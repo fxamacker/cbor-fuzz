@@ -55,6 +55,7 @@ func fuzz(b1 []byte) {
 		func() interface{} { return new(map[interface{}]interface{}) },
 		func() interface{} { return new(map[int]interface{}) },
 		func() interface{} { return new(map[string]interface{}) },
+		func() interface{} { return new(cbor.RawMessage) },
 		func() interface{} { return new(time.Time) },
 	} {
 		v1 := ctor()

@@ -15,11 +15,15 @@ func Fuzz(data []byte) int {
 	if cbor.Unmarshal(data, &i) != nil {
 		return 0
 	}
-	_, err := cbor.Marshal(i, cbor.EncOptions{Canonical: false})
+	_, err := cbor.Marshal(i, cbor.EncOptions{})
 	if err != nil {
 		panic(err)
 	}
 	b, err := cbor.Marshal(i, cbor.EncOptions{Canonical: true})
+	if err != nil {
+		panic(err)
+	}
+	b, err = cbor.Marshal(i, cbor.EncOptions{CTAP2Canonical: true})
 	if err != nil {
 		panic(err)
 	}
@@ -67,10 +71,13 @@ func fuzz(b1 []byte) {
 			continue
 		}
 		var b2 []byte
-		if _, err = cbor.Marshal(v1, cbor.EncOptions{Canonical: false}); err != nil {
+		if _, err = cbor.Marshal(v1, cbor.EncOptions{}); err != nil {
 			panic(err)
 		}
-		if b2, err = cbor.Marshal(v1, cbor.EncOptions{Canonical: true}); err != nil {
+		if _, err = cbor.Marshal(v1, cbor.EncOptions{Canonical: true}); err != nil {
+			panic(err)
+		}
+		if b2, err = cbor.Marshal(v1, cbor.EncOptions{CTAP2Canonical: true}); err != nil {
 			panic(err)
 		}
 		v2 := ctor()

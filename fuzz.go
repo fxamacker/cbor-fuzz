@@ -170,12 +170,12 @@ func Fuzz(data []byte) int {
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
-		enc = cbor.NewEncoder(ioutil.Discard, cbor.EncOptions{Canonical: true})
+		enc = cbor.NewEncoder(ioutil.Discard, cbor.EncOptions{Sort: cbor.SortLengthFirst})
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
 		var buf bytes.Buffer
-		enc = cbor.NewEncoder(&buf, cbor.EncOptions{CTAP2Canonical: true})
+		enc = cbor.NewEncoder(&buf, cbor.EncOptions{Sort: cbor.SortBytewiseLexical})
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}

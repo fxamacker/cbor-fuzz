@@ -166,16 +166,29 @@ func Fuzz(data []byte) int {
 			continue
 		}
 
+		// Encode with default options
 		enc := cbor.NewEncoder(ioutil.Discard, cbor.EncOptions{})
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
-		enc = cbor.NewEncoder(ioutil.Discard, cbor.EncOptions{Sort: cbor.SortLengthFirst})
+		// Encode with "Preferred" encoding options
+		enc = cbor.NewEncoder(ioutil.Discard, cbor.PreferredUnsortedEncOptions())
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
+		// Encode with "Canonical" encoding options
+		enc = cbor.NewEncoder(ioutil.Discard, cbor.CanonicalEncOptions())
+		if err := enc.Encode(v1); err != nil {
+			panic(err)
+		}
+		// Encode with "CTAP2 Canonical" encoding options
+		enc = cbor.NewEncoder(ioutil.Discard, cbor.CTAP2EncOptions())
+		if err := enc.Encode(v1); err != nil {
+			panic(err)
+		}
+		// Encode with "Core Deterministic" encoding options
 		var buf bytes.Buffer
-		enc = cbor.NewEncoder(&buf, cbor.EncOptions{Sort: cbor.SortBytewiseLexical})
+		enc = cbor.NewEncoder(&buf, cbor.CoreDetEncOptions())
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}

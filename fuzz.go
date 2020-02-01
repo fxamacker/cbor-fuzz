@@ -93,18 +93,17 @@ type (
 	}
 )
 
-func (m *marshaller) MarshalCBOR() ([]byte, error) {
-	return cbor.Marshal(m.v, cbor.EncOptions{})
+func (m *marshaller) MarshalCBOR(em cbor.EncMode) ([]byte, error) {
+	return em.Marshal(m.v)
 }
 
-func (m *marshaller) UnmarshalCBOR(data []byte) error {
-	return cbor.Unmarshal(data, &m.v)
+func (m *marshaller) UnmarshalCBOR(dm cbor.DecMode, data []byte) error {
+	return dm.Unmarshal(data, &m.v)
 }
 
 // Fuzz decodes->encodes->decodes CBOR data into different Go types and
 // compares the results.
 func Fuzz(data []byte) int {
-	var err error
 	score := 0
 	for _, ctor := range []func() interface{}{
 		func() interface{} { return nil },
@@ -167,28 +166,44 @@ func Fuzz(data []byte) int {
 		}
 
 		// Encode with default options
-		enc := cbor.NewEncoder(ioutil.Discard, cbor.EncOptions{})
+		enc := cbor.NewEncoder(ioutil.Discard)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
 		// Encode with "Preferred" encoding options
-		enc = cbor.NewEncoder(ioutil.Discard, cbor.PreferredUnsortedEncOptions())
+		em, err := cbor.PreferredUnsortedEncOptions().EncMode()
+		if err != nil {
+			panic(err)
+		}
+		enc = em.NewEncoder(ioutil.Discard)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
 		// Encode with "Canonical" encoding options
-		enc = cbor.NewEncoder(ioutil.Discard, cbor.CanonicalEncOptions())
+		em, err = cbor.CanonicalEncOptions().EncMode()
+		if err != nil {
+			panic(err)
+		}
+		enc = em.NewEncoder(ioutil.Discard)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
 		// Encode with "CTAP2 Canonical" encoding options
-		enc = cbor.NewEncoder(ioutil.Discard, cbor.CTAP2EncOptions())
+		em, err = cbor.CTAP2EncOptions().EncMode()
+		if err != nil {
+			panic(err)
+		}
+		enc = em.NewEncoder(ioutil.Discard)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
 		// Encode with "Core Deterministic" encoding options
+		em, err = cbor.CoreDetEncOptions().EncMode()
+		if err != nil {
+			panic(err)
+		}
 		var buf bytes.Buffer
-		enc = cbor.NewEncoder(&buf, cbor.CoreDetEncOptions())
+		enc = em.NewEncoder(&buf)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
@@ -224,9 +239,13 @@ func Fuzz(data []byte) int {
 }
 
 func fuzzTime(t *time.Time) {
-	// Fuzz unix time.
+	em, err := cbor.EncOptions{Time: cbor.TimeUnix}.EncMode()
+	if err != nil {
+		panic(err)
+	}
+	// Fuzz unix time with second precision.
 	var b1 bytes.Buffer
-	enc := cbor.NewEncoder(&b1, cbor.EncOptions{TimeRFC3339: false})
+	enc := em.NewEncoder(&b1)
 	if err := enc.Encode(t); err != nil {
 		panic(err)
 	}
@@ -236,14 +255,63 @@ func fuzzTime(t *time.Time) {
 		panic(err)
 	}
 
+	em, err = cbor.EncOptions{Time: cbor.TimeUnixMicro}.EncMode()
+	if err != nil {
+		panic(err)
+	}
+	// Fuzz unix time with microsecond precision.
+	b1.Reset()
+	enc = em.NewEncoder(&b1)
+	if err := enc.Encode(t); err != nil {
+		panic(err)
+	}
+	dec = cbor.NewDecoder(&b1)
+	if err := dec.Decode(&t1); err != nil {
+		panic(err)
+	}
+
+	em, err = cbor.EncOptions{Time: cbor.TimeUnixDynamic}.EncMode()
+	if err != nil {
+		panic(err)
+	}
+	// Fuzz unix time with second/microsecond precision.
+	b1.Reset()
+	enc = em.NewEncoder(&b1)
+	if err := enc.Encode(t); err != nil {
+		panic(err)
+	}
+	dec = cbor.NewDecoder(&b1)
+	if err := dec.Decode(&t1); err != nil {
+		panic(err)
+	}
+
 	if t.Year() >= 0 && t.Year() < 10000 {
 		// Fuzz time in RFC3339 format.
+		em, err = cbor.EncOptions{Time: cbor.TimeRFC3339}.EncMode()
+		if err != nil {
+			panic(err)
+		}
 		var b2 bytes.Buffer
-		enc = cbor.NewEncoder(&b2, cbor.EncOptions{TimeRFC3339: true})
+		enc = em.NewEncoder(&b2)
 		if err := enc.Encode(t); err != nil {
 			panic(err)
 		}
 		var t2 time.Time
+		dec = cbor.NewDecoder(&b2)
+		if err := dec.Decode(&t2); err != nil {
+			panic(err)
+		}
+
+		// Fuzz time in RFC3339 nano format.
+		em, err = cbor.EncOptions{Time: cbor.TimeRFC3339Nano}.EncMode()
+		if err != nil {
+			panic(err)
+		}
+		b2.Reset()
+		enc = em.NewEncoder(&b2)
+		if err := enc.Encode(t); err != nil {
+			panic(err)
+		}
 		dec = cbor.NewDecoder(&b2)
 		if err := dec.Decode(&t2); err != nil {
 			panic(err)

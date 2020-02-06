@@ -93,12 +93,12 @@ type (
 	}
 )
 
-func (m *marshaller) MarshalCBOR(em cbor.EncMode) ([]byte, error) {
-	return em.Marshal(m.v)
+func (m *marshaller) MarshalCBOR() ([]byte, error) {
+	return cbor.Marshal(m.v)
 }
 
-func (m *marshaller) UnmarshalCBOR(dm cbor.DecMode, data []byte) error {
-	return dm.Unmarshal(data, &m.v)
+func (m *marshaller) UnmarshalCBOR(data []byte) error {
+	return cbor.Unmarshal(data, &m.v)
 }
 
 // Fuzz decodes->encodes->decodes CBOR data into different Go types and

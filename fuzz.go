@@ -125,23 +125,43 @@ func Fuzz(data []byte) int {
 		func() interface{} { return new([]byte) },
 		func() interface{} { return new([]interface{}) },
 		func() interface{} { return new([]bool) },
+		func() interface{} { return new([]*bool) },
 		func() interface{} { return new([]uint) },
+		func() interface{} { return new([]*uint) },
 		func() interface{} { return new([]uint8) },
+		func() interface{} { return new([]*uint8) },
 		func() interface{} { return new([]uint16) },
+		func() interface{} { return new([]*uint16) },
 		func() interface{} { return new([]uint32) },
+		func() interface{} { return new([]*uint32) },
 		func() interface{} { return new([]uint64) },
+		func() interface{} { return new([]*uint64) },
 		func() interface{} { return new([]int) },
+		func() interface{} { return new([]*int) },
 		func() interface{} { return new([]int8) },
+		func() interface{} { return new([]*int8) },
 		func() interface{} { return new([]int16) },
+		func() interface{} { return new([]*int16) },
 		func() interface{} { return new([]int32) },
+		func() interface{} { return new([]*int32) },
 		func() interface{} { return new([]int64) },
+		func() interface{} { return new([]*int64) },
 		func() interface{} { return new([]float32) },
+		func() interface{} { return new([]*float32) },
 		func() interface{} { return new([]float64) },
+		func() interface{} { return new([]*float64) },
 		func() interface{} { return new([]string) },
+		func() interface{} { return new([]*string) },
 		func() interface{} { return new(map[interface{}]interface{}) },
 		func() interface{} { return new(map[int]interface{}) },
 		func() interface{} { return new(map[string]interface{}) },
+		func() interface{} { return new(map[int]int) },
+		func() interface{} { return new(map[int]*int) },
+		func() interface{} { return new(map[string]string) },
+		func() interface{} { return new(map[string]*string) },
 		func() interface{} { return new(cbor.RawMessage) },
+		func() interface{} { return new(cbor.Tag) },
+		func() interface{} { return new(cbor.RawTag) },
 		func() interface{} { return new(marshaller) },
 		func() interface{} { return new(time.Time) },
 		func() interface{} { return new(claims) },
@@ -160,8 +180,26 @@ func Fuzz(data []byte) int {
 		}
 		score = 1
 
-		if t, ok := v1.(*time.Time); ok {
-			fuzzTime(t)
+		v3 := ctor()
+		dm, err := cbor.DecOptions{DupMapKey: cbor.DupMapKeyEnforcedAPF}.DecMode()
+		if err != nil {
+			panic(err)
+		}
+		dec = dm.NewDecoder(bytes.NewReader(data))
+		if err := dec.Decode(v3); err != nil {
+			if _, ok := err.(*cbor.DupMapKeyError); !ok {
+				panic(err)
+			}
+		}
+
+		rv := reflect.ValueOf(v1)
+		for rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+			rv = rv.Elem()
+		}
+
+		if rv.IsValid() && rv.Type() == typeTime {
+			t := rv.Interface().(time.Time)
+			fuzzTime(&t)
 			continue
 		}
 
@@ -231,8 +269,9 @@ func Fuzz(data []byte) int {
 				v2.(*attestationObject).AttStmt = nil
 			}
 		}
-		if !DeepEqual(v1, v2) {
-			panic(fmt.Sprintf("Go type %s not equal: v1 %v, v2 %v", reflect.TypeOf(v1), v1, v2))
+		// Skip equal test for objects with time.Time as an element for now
+		if !hasTimeElem(v1) && !DeepEqual(v1, v2) {
+			panic(fmt.Sprintf("Go type %s not equal: v1 %+v, v2 %+v", reflect.TypeOf(v1), v1, v2))
 		}
 	}
 	return score
@@ -318,3 +357,21 @@ func fuzzTime(t *time.Time) {
 		}
 	}
 }
+
+func hasTimeElem(v interface{}) bool {
+	em, _ := cbor.EncOptions{Time: cbor.TimeUnixDynamic, Sort: cbor.SortBytewiseLexical}.EncMode()
+	b1, err := em.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+
+	em, _ = cbor.EncOptions{Time: cbor.TimeRFC3339Nano, Sort: cbor.SortBytewiseLexical}.EncMode()
+	b2, err := em.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+
+	return !bytes.Equal(b1, b2)
+}
+
+var typeTime = reflect.TypeOf(time.Time{})

@@ -123,153 +123,102 @@ func Fuzz(data []byte) int {
 		func() interface{} { return new(float64) },
 		func() interface{} { return new(string) },
 		func() interface{} { return new([]byte) },
-		func() interface{} { return new([0]byte) },
 		func() interface{} { return new([1]byte) },
 		func() interface{} { return new([10]byte) },
 		func() interface{} { return new([]interface{}) },
-		func() interface{} { return new([0]interface{}) },
 		func() interface{} { return new([1]interface{}) },
 		func() interface{} { return new([10]interface{}) },
 		func() interface{} { return new([]bool) },
-		func() interface{} { return new([0]bool) },
 		func() interface{} { return new([1]bool) },
 		func() interface{} { return new([10]bool) },
 		func() interface{} { return new([]*bool) },
-		func() interface{} { return new([0]*bool) },
 		func() interface{} { return new([1]*bool) },
 		func() interface{} { return new([10]*bool) },
 		func() interface{} { return new([]uint) },
-		func() interface{} { return new([0]uint) },
 		func() interface{} { return new([1]uint) },
 		func() interface{} { return new([10]uint) },
 		func() interface{} { return new([]*uint) },
-		func() interface{} { return new([0]*uint) },
 		func() interface{} { return new([1]*uint) },
 		func() interface{} { return new([10]*uint) },
 		func() interface{} { return new([]uint8) },
-		func() interface{} { return new([0]uint8) },
 		func() interface{} { return new([1]uint8) },
 		func() interface{} { return new([10]uint8) },
 		func() interface{} { return new([]*uint8) },
-		func() interface{} { return new([0]*uint8) },
 		func() interface{} { return new([1]*uint8) },
 		func() interface{} { return new([10]*uint8) },
 		func() interface{} { return new([]uint16) },
-		func() interface{} { return new([0]uint16) },
 		func() interface{} { return new([1]uint16) },
 		func() interface{} { return new([10]uint16) },
 		func() interface{} { return new([]*uint16) },
-		func() interface{} { return new([0]*uint16) },
 		func() interface{} { return new([1]*uint16) },
 		func() interface{} { return new([10]*uint16) },
 		func() interface{} { return new([]uint32) },
-		func() interface{} { return new([0]uint32) },
 		func() interface{} { return new([1]uint32) },
 		func() interface{} { return new([10]uint32) },
 		func() interface{} { return new([]*uint32) },
-		func() interface{} { return new([0]*uint32) },
 		func() interface{} { return new([1]*uint32) },
 		func() interface{} { return new([10]*uint32) },
 		func() interface{} { return new([]uint64) },
-		func() interface{} { return new([0]uint64) },
 		func() interface{} { return new([1]uint64) },
 		func() interface{} { return new([10]uint64) },
 		func() interface{} { return new([]*uint64) },
-		func() interface{} { return new([0]*uint64) },
 		func() interface{} { return new([1]*uint64) },
 		func() interface{} { return new([10]*uint64) },
 		func() interface{} { return new([]int) },
-		func() interface{} { return new([0]int) },
 		func() interface{} { return new([1]int) },
 		func() interface{} { return new([10]int) },
 		func() interface{} { return new([]*int) },
-		func() interface{} { return new([0]*int) },
 		func() interface{} { return new([1]*int) },
 		func() interface{} { return new([10]*int) },
 		func() interface{} { return new([]int8) },
-		func() interface{} { return new([0]int8) },
 		func() interface{} { return new([1]int8) },
 		func() interface{} { return new([10]int8) },
 		func() interface{} { return new([]*int8) },
-		func() interface{} { return new([0]*int8) },
 		func() interface{} { return new([1]*int8) },
 		func() interface{} { return new([10]*int8) },
 		func() interface{} { return new([]int16) },
-		func() interface{} { return new([0]int16) },
 		func() interface{} { return new([1]int16) },
 		func() interface{} { return new([10]int16) },
 		func() interface{} { return new([]*int16) },
-		func() interface{} { return new([0]*int16) },
 		func() interface{} { return new([1]*int16) },
 		func() interface{} { return new([10]*int16) },
 		func() interface{} { return new([]int32) },
-		func() interface{} { return new([0]int32) },
 		func() interface{} { return new([1]int32) },
 		func() interface{} { return new([10]int32) },
 		func() interface{} { return new([]*int32) },
-		func() interface{} { return new([0]*int32) },
 		func() interface{} { return new([1]*int32) },
 		func() interface{} { return new([10]*int32) },
 		func() interface{} { return new([]int64) },
-		func() interface{} { return new([0]int64) },
 		func() interface{} { return new([1]int64) },
 		func() interface{} { return new([10]int64) },
 		func() interface{} { return new([]*int64) },
-		func() interface{} { return new([0]*int64) },
 		func() interface{} { return new([1]*int64) },
 		func() interface{} { return new([10]*int64) },
 		func() interface{} { return new([]float32) },
-		func() interface{} { return new([0]float32) },
 		func() interface{} { return new([1]float32) },
 		func() interface{} { return new([10]float32) },
 		func() interface{} { return new([]*float32) },
-		func() interface{} { return new([0]*float32) },
 		func() interface{} { return new([1]*float32) },
 		func() interface{} { return new([10]*float32) },
 		func() interface{} { return new([]float64) },
-		func() interface{} { return new([0]float64) },
 		func() interface{} { return new([1]float64) },
 		func() interface{} { return new([10]float64) },
 		func() interface{} { return new([]*float64) },
-		func() interface{} { return new([0]*float64) },
 		func() interface{} { return new([1]*float64) },
 		func() interface{} { return new([10]*float64) },
 		func() interface{} { return new([]string) },
-		func() interface{} { return new([0]string) },
 		func() interface{} { return new([1]string) },
 		func() interface{} { return new([10]string) },
 		func() interface{} { return new([]*string) },
-		func() interface{} { return new([0]*string) },
 		func() interface{} { return new([1]*string) },
 		func() interface{} { return new([10]*string) },
 		func() interface{} { return new(map[interface{}]interface{}) },
-		func() interface{} { return new(map[interface{}][0]interface{}) },
-		func() interface{} { return new(map[interface{}][1]interface{}) },
-		func() interface{} { return new(map[interface{}][10]interface{}) },
 		func() interface{} { return new(map[int]interface{}) },
-		func() interface{} { return new(map[int][0]interface{}) },
-		func() interface{} { return new(map[int][1]interface{}) },
-		func() interface{} { return new(map[int][10]interface{}) },
 		func() interface{} { return new(map[string]interface{}) },
-		func() interface{} { return new(map[string][0]interface{}) },
-		func() interface{} { return new(map[string][1]interface{}) },
-		func() interface{} { return new(map[string][10]interface{}) },
 		func() interface{} { return new(map[int]int) },
-		func() interface{} { return new(map[int][0]int) },
-		func() interface{} { return new(map[int][1]int) },
-		func() interface{} { return new(map[int][10]int) },
 		func() interface{} { return new(map[int]*int) },
-		func() interface{} { return new(map[int][0]*int) },
-		func() interface{} { return new(map[int][1]*int) },
-		func() interface{} { return new(map[int][10]*int) },
 		func() interface{} { return new(map[string]string) },
-		func() interface{} { return new(map[string][0]string) },
-		func() interface{} { return new(map[string][1]string) },
-		func() interface{} { return new(map[string][10]string) },
 		func() interface{} { return new(map[string]*string) },
-		func() interface{} { return new(map[string][0]*string) },
-		func() interface{} { return new(map[string][1]*string) },
-		func() interface{} { return new(map[string][10]*string) },
 		func() interface{} { return new(cbor.RawMessage) },
 		func() interface{} { return new(cbor.Tag) },
 		func() interface{} { return new(cbor.RawTag) },
@@ -291,12 +240,13 @@ func Fuzz(data []byte) int {
 		}
 		score = 1
 
-		v3 := ctor()
+		// Fuzz data with duplicate map key detection.
 		dm, err := cbor.DecOptions{DupMapKey: cbor.DupMapKeyEnforcedAPF}.DecMode()
 		if err != nil {
 			panic(err)
 		}
 		dec = dm.NewDecoder(bytes.NewReader(data))
+		v3 := ctor()
 		if err := dec.Decode(v3); err != nil {
 			if _, ok := err.(*cbor.DupMapKeyError); !ok {
 				panic(err)
@@ -337,12 +287,12 @@ func Fuzz(data []byte) int {
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
-		if rv.IsValid() && rv.Type() != typeTag && rv.Type() != typeRawTag {
-			// Encode with "CTAP2 Canonical" encoding options
-			em, err = cbor.CTAP2EncOptions().EncMode()
-			if err != nil {
-				panic(err)
-			}
+		// Encode with "CTAP2 Canonical" encoding options (TagsAllowed is needed to avoid error when encoding CBOR tags)
+		ctap2Opts := cbor.CTAP2EncOptions()
+		ctap2Opts.TagsMd = cbor.TagsAllowed
+		em, err = ctap2Opts.EncMode()
+		if err != nil {
+			panic(err)
 		}
 		enc = em.NewEncoder(ioutil.Discard)
 		if err := enc.Encode(v1); err != nil {
@@ -391,11 +341,11 @@ func Fuzz(data []byte) int {
 }
 
 func fuzzTime(t *time.Time) {
+	// Fuzz unix time with second precision.
 	em, err := cbor.EncOptions{Time: cbor.TimeUnix}.EncMode()
 	if err != nil {
 		panic(err)
 	}
-	// Fuzz unix time with second precision.
 	var b1 bytes.Buffer
 	enc := em.NewEncoder(&b1)
 	if err := enc.Encode(t); err != nil {
@@ -407,11 +357,11 @@ func fuzzTime(t *time.Time) {
 		panic(err)
 	}
 
+	// Fuzz unix time with microsecond precision.
 	em, err = cbor.EncOptions{Time: cbor.TimeUnixMicro}.EncMode()
 	if err != nil {
 		panic(err)
 	}
-	// Fuzz unix time with microsecond precision.
 	b1.Reset()
 	enc = em.NewEncoder(&b1)
 	if err := enc.Encode(t); err != nil {
@@ -422,11 +372,11 @@ func fuzzTime(t *time.Time) {
 		panic(err)
 	}
 
+	// Fuzz unix time with second/microsecond precision.
 	em, err = cbor.EncOptions{Time: cbor.TimeUnixDynamic}.EncMode()
 	if err != nil {
 		panic(err)
 	}
-	// Fuzz unix time with second/microsecond precision.
 	b1.Reset()
 	enc = em.NewEncoder(&b1)
 	if err := enc.Encode(t); err != nil {

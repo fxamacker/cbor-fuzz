@@ -233,6 +233,7 @@ func Fuzz(data []byte) int {
 		func() interface{} { return new(t2) },
 		func() interface{} { return new(t3) },
 	} {
+		// Decode with default options
 		v1 := ctor()
 		dec := cbor.NewDecoder(bytes.NewReader(data))
 		if dec.Decode(v1) != nil {
@@ -240,18 +241,11 @@ func Fuzz(data []byte) int {
 		}
 		score = 1
 
-		// Fuzz data with duplicate map key detection.
-		dm, err := cbor.DecOptions{DupMapKey: cbor.DupMapKeyEnforcedAPF}.DecMode()
-		if err != nil {
-			panic(err)
-		}
-		dec = dm.NewDecoder(bytes.NewReader(data))
-		v3 := ctor()
-		if err := dec.Decode(v3); err != nil {
-			if _, ok := err.(*cbor.DupMapKeyError); !ok {
-				panic(err)
-			}
-		}
+		// Decode with IntDec set to IntDecConvertSigned.
+		fuzzIntDecoding(data, ctor())
+
+		// Decode with DupMapKey set to DupMapKeyEnforcedAPF.
+		fuzzDuplicateMapKeyDecoding(data, ctor())
 
 		rv := reflect.ValueOf(v1)
 		for rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
@@ -269,6 +263,7 @@ func Fuzz(data []byte) int {
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
+
 		// Encode with "Preferred" encoding options
 		em, err := cbor.PreferredUnsortedEncOptions().EncMode()
 		if err != nil {
@@ -278,6 +273,7 @@ func Fuzz(data []byte) int {
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
+
 		// Encode with "Canonical" encoding options
 		em, err = cbor.CanonicalEncOptions().EncMode()
 		if err != nil {
@@ -287,6 +283,7 @@ func Fuzz(data []byte) int {
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
+
 		// Encode with "CTAP2 Canonical" encoding options (TagsAllowed is needed to avoid error when encoding CBOR tags)
 		ctap2Opts := cbor.CTAP2EncOptions()
 		ctap2Opts.TagsMd = cbor.TagsAllowed
@@ -298,6 +295,7 @@ func Fuzz(data []byte) int {
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
+
 		// Encode with "Core Deterministic" encoding options
 		em, err = cbor.CoreDetEncOptions().EncMode()
 		if err != nil {
@@ -332,12 +330,41 @@ func Fuzz(data []byte) int {
 				v2.(*attestationObject).AttStmt = nil
 			}
 		}
+
 		// Skip equal test for objects with time.Time as an element for now
-		if !hasTimeElem(v1) && !DeepEqual(v1, v2) {
+		if !hasTimeElem(reflect.ValueOf(v1)) && !DeepEqual(v1, v2) {
 			panic(fmt.Sprintf("Go type %s not equal: v1 %+v, v2 %+v", reflect.TypeOf(v1), v1, v2))
 		}
 	}
 	return score
+}
+
+func fuzzDuplicateMapKeyDecoding(data []byte, v interface{}) {
+	dm, err := cbor.DecOptions{DupMapKey: cbor.DupMapKeyEnforcedAPF}.DecMode()
+	if err != nil {
+		panic(err)
+	}
+
+	dec := dm.NewDecoder(bytes.NewReader(data))
+	if err := dec.Decode(v); err != nil {
+		if _, ok := err.(*cbor.DupMapKeyError); !ok {
+			panic(err)
+		}
+	}
+}
+
+func fuzzIntDecoding(data []byte, v interface{}) {
+	dm, err := cbor.DecOptions{IntDec: cbor.IntDecConvertSigned}.DecMode()
+	if err != nil {
+		panic(err)
+	}
+
+	dec := dm.NewDecoder(bytes.NewReader(data))
+	if err := dec.Decode(v); err != nil {
+		if _, ok := err.(*cbor.UnmarshalTypeError); !ok {
+			panic(err)
+		}
+	}
 }
 
 func fuzzTime(t *time.Time) {
@@ -421,20 +448,47 @@ func fuzzTime(t *time.Time) {
 	}
 }
 
-func hasTimeElem(v interface{}) bool {
-	em, _ := cbor.EncOptions{Time: cbor.TimeUnixDynamic, Sort: cbor.SortBytewiseLexical}.EncMode()
-	b1, err := em.Marshal(v)
-	if err != nil {
-		panic(err)
+func hasTimeElem(rv reflect.Value) bool {
+	if !rv.IsValid() {
+		return false
 	}
 
-	em, _ = cbor.EncOptions{Time: cbor.TimeRFC3339Nano, Sort: cbor.SortBytewiseLexical}.EncMode()
-	b2, err := em.Marshal(v)
-	if err != nil {
-		panic(err)
+	if rv.Type() == typeTime {
+		return true
 	}
 
-	return !bytes.Equal(b1, b2)
+	switch rv.Kind() {
+	case reflect.Interface:
+		if rv.IsNil() {
+			return false
+		}
+		return hasTimeElem(rv.Elem())
+	case reflect.Ptr:
+		return hasTimeElem(rv.Elem())
+	case reflect.Struct:
+		for i, n := 0, rv.NumField(); i < n; i++ {
+			if hasTimeElem(rv.Field(i)) {
+				return true
+			}
+		}
+		return false
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < rv.Len(); i++ {
+			if hasTimeElem(rv.Index(i)) {
+				return true
+			}
+		}
+		return false
+	case reflect.Map:
+		for _, k := range rv.MapKeys() {
+			if hasTimeElem(k) || hasTimeElem(rv.MapIndex(k)) {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
 }
 
 var typeTime = reflect.TypeOf(time.Time{})

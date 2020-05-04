@@ -101,6 +101,29 @@ func (m *marshaller) UnmarshalCBOR(data []byte) error {
 	return cbor.Unmarshal(data, &m.v)
 }
 
+var (
+	typeTime   = reflect.TypeOf(time.Time{})
+	typeTag    = reflect.TypeOf(cbor.Tag{})
+	typeRawTag = reflect.TypeOf(cbor.RawTag{})
+)
+
+var (
+	dmDupMapKeyEnforcedAPF, _   = cbor.DecOptions{DupMapKey: cbor.DupMapKeyEnforcedAPF}.DecMode()
+	dmIntDecConvertSigned, _    = cbor.DecOptions{IntDec: cbor.IntDecConvertSigned}.DecMode()
+	dmExtraErrorUnknownField, _ = cbor.DecOptions{ExtraReturnErrors: cbor.ExtraDecErrorUnknownField}.DecMode()
+)
+
+var (
+	emPreferred, _         = cbor.PreferredUnsortedEncOptions().EncMode()
+	emCanonical, _         = cbor.CanonicalEncOptions().EncMode()
+	emCoreDeterministic, _ = cbor.CoreDetEncOptions().EncMode()
+	emTimeUnix, _          = cbor.EncOptions{Time: cbor.TimeUnix}.EncMode()
+	emTimeUnixMicro, _     = cbor.EncOptions{Time: cbor.TimeUnixMicro}.EncMode()
+	emTimeUnixDynamic, _   = cbor.EncOptions{Time: cbor.TimeUnixDynamic}.EncMode()
+	emTimeRFC3339, _       = cbor.EncOptions{Time: cbor.TimeRFC3339}.EncMode()
+	emTimeRFC3339Nano, _   = cbor.EncOptions{Time: cbor.TimeRFC3339Nano}.EncMode()
+)
+
 // Fuzz decodes->encodes->decodes CBOR data into different Go types and
 // compares the results.
 func Fuzz(data []byte) int {
@@ -247,6 +270,9 @@ func Fuzz(data []byte) int {
 		// Decode with DupMapKey set to DupMapKeyEnforcedAPF.
 		fuzzDuplicateMapKeyDecoding(data, ctor())
 
+		// Decode with ExtraReturnErrors set to ExtraDecErrorUnknownField.
+		fuzzUnknownField(data, ctor())
+
 		rv := reflect.ValueOf(v1)
 		for rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
 			rv = rv.Elem()
@@ -265,21 +291,13 @@ func Fuzz(data []byte) int {
 		}
 
 		// Encode with "Preferred" encoding options
-		em, err := cbor.PreferredUnsortedEncOptions().EncMode()
-		if err != nil {
-			panic(err)
-		}
-		enc = em.NewEncoder(ioutil.Discard)
+		enc = emPreferred.NewEncoder(ioutil.Discard)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
 
 		// Encode with "Canonical" encoding options
-		em, err = cbor.CanonicalEncOptions().EncMode()
-		if err != nil {
-			panic(err)
-		}
-		enc = em.NewEncoder(ioutil.Discard)
+		enc = emCanonical.NewEncoder(ioutil.Discard)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
@@ -287,22 +305,18 @@ func Fuzz(data []byte) int {
 		// Encode with "CTAP2 Canonical" encoding options (TagsAllowed is needed to avoid error when encoding CBOR tags)
 		ctap2Opts := cbor.CTAP2EncOptions()
 		ctap2Opts.TagsMd = cbor.TagsAllowed
-		em, err = ctap2Opts.EncMode()
+		emCTAP2, err := ctap2Opts.EncMode()
 		if err != nil {
 			panic(err)
 		}
-		enc = em.NewEncoder(ioutil.Discard)
+		enc = emCTAP2.NewEncoder(ioutil.Discard)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
 
 		// Encode with "Core Deterministic" encoding options
-		em, err = cbor.CoreDetEncOptions().EncMode()
-		if err != nil {
-			panic(err)
-		}
 		var buf bytes.Buffer
-		enc = em.NewEncoder(&buf)
+		enc = emCoreDeterministic.NewEncoder(&buf)
 		if err := enc.Encode(v1); err != nil {
 			panic(err)
 		}
@@ -340,12 +354,7 @@ func Fuzz(data []byte) int {
 }
 
 func fuzzDuplicateMapKeyDecoding(data []byte, v interface{}) {
-	dm, err := cbor.DecOptions{DupMapKey: cbor.DupMapKeyEnforcedAPF}.DecMode()
-	if err != nil {
-		panic(err)
-	}
-
-	dec := dm.NewDecoder(bytes.NewReader(data))
+	dec := dmDupMapKeyEnforcedAPF.NewDecoder(bytes.NewReader(data))
 	if err := dec.Decode(v); err != nil {
 		if _, ok := err.(*cbor.DupMapKeyError); !ok {
 			panic(err)
@@ -354,12 +363,7 @@ func fuzzDuplicateMapKeyDecoding(data []byte, v interface{}) {
 }
 
 func fuzzIntDecoding(data []byte, v interface{}) {
-	dm, err := cbor.DecOptions{IntDec: cbor.IntDecConvertSigned}.DecMode()
-	if err != nil {
-		panic(err)
-	}
-
-	dec := dm.NewDecoder(bytes.NewReader(data))
+	dec := dmIntDecConvertSigned.NewDecoder(bytes.NewReader(data))
 	if err := dec.Decode(v); err != nil {
 		if _, ok := err.(*cbor.UnmarshalTypeError); !ok {
 			panic(err)
@@ -367,14 +371,19 @@ func fuzzIntDecoding(data []byte, v interface{}) {
 	}
 }
 
+func fuzzUnknownField(data []byte, v interface{}) {
+	dec := dmExtraErrorUnknownField.NewDecoder(bytes.NewReader(data))
+	if err := dec.Decode(v); err != nil {
+		if _, ok := err.(*cbor.UnknownFieldError); !ok {
+			panic(err)
+		}
+	}
+}
+
 func fuzzTime(t *time.Time) {
 	// Fuzz unix time with second precision.
-	em, err := cbor.EncOptions{Time: cbor.TimeUnix}.EncMode()
-	if err != nil {
-		panic(err)
-	}
 	var b1 bytes.Buffer
-	enc := em.NewEncoder(&b1)
+	enc := emTimeUnix.NewEncoder(&b1)
 	if err := enc.Encode(t); err != nil {
 		panic(err)
 	}
@@ -385,12 +394,8 @@ func fuzzTime(t *time.Time) {
 	}
 
 	// Fuzz unix time with microsecond precision.
-	em, err = cbor.EncOptions{Time: cbor.TimeUnixMicro}.EncMode()
-	if err != nil {
-		panic(err)
-	}
 	b1.Reset()
-	enc = em.NewEncoder(&b1)
+	enc = emTimeUnixMicro.NewEncoder(&b1)
 	if err := enc.Encode(t); err != nil {
 		panic(err)
 	}
@@ -400,12 +405,8 @@ func fuzzTime(t *time.Time) {
 	}
 
 	// Fuzz unix time with second/microsecond precision.
-	em, err = cbor.EncOptions{Time: cbor.TimeUnixDynamic}.EncMode()
-	if err != nil {
-		panic(err)
-	}
 	b1.Reset()
-	enc = em.NewEncoder(&b1)
+	enc = emTimeUnixDynamic.NewEncoder(&b1)
 	if err := enc.Encode(t); err != nil {
 		panic(err)
 	}
@@ -416,12 +417,8 @@ func fuzzTime(t *time.Time) {
 
 	if t.Year() >= 0 && t.Year() < 10000 {
 		// Fuzz time in RFC3339 format.
-		em, err = cbor.EncOptions{Time: cbor.TimeRFC3339}.EncMode()
-		if err != nil {
-			panic(err)
-		}
 		var b2 bytes.Buffer
-		enc = em.NewEncoder(&b2)
+		enc = emTimeRFC3339.NewEncoder(&b2)
 		if err := enc.Encode(t); err != nil {
 			panic(err)
 		}
@@ -432,12 +429,8 @@ func fuzzTime(t *time.Time) {
 		}
 
 		// Fuzz time in RFC3339 nano format.
-		em, err = cbor.EncOptions{Time: cbor.TimeRFC3339Nano}.EncMode()
-		if err != nil {
-			panic(err)
-		}
 		b2.Reset()
-		enc = em.NewEncoder(&b2)
+		enc = emTimeRFC3339Nano.NewEncoder(&b2)
 		if err := enc.Encode(t); err != nil {
 			panic(err)
 		}
@@ -490,7 +483,3 @@ func hasTimeElem(rv reflect.Value) bool {
 		return false
 	}
 }
-
-var typeTime = reflect.TypeOf(time.Time{})
-var typeTag = reflect.TypeOf(cbor.Tag{})
-var typeRawTag = reflect.TypeOf(cbor.RawTag{})

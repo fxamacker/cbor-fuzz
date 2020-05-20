@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"reflect"
 	"time"
 
@@ -103,6 +104,7 @@ func (m *marshaller) UnmarshalCBOR(data []byte) error {
 
 var (
 	typeTime   = reflect.TypeOf(time.Time{})
+	typeBigInt = reflect.TypeOf(big.Int{})
 	typeTag    = reflect.TypeOf(cbor.Tag{})
 	typeRawTag = reflect.TypeOf(cbor.RawTag{})
 )
@@ -114,14 +116,16 @@ var (
 )
 
 var (
-	emPreferred, _         = cbor.PreferredUnsortedEncOptions().EncMode()
-	emCanonical, _         = cbor.CanonicalEncOptions().EncMode()
-	emCoreDeterministic, _ = cbor.CoreDetEncOptions().EncMode()
-	emTimeUnix, _          = cbor.EncOptions{Time: cbor.TimeUnix}.EncMode()
-	emTimeUnixMicro, _     = cbor.EncOptions{Time: cbor.TimeUnixMicro}.EncMode()
-	emTimeUnixDynamic, _   = cbor.EncOptions{Time: cbor.TimeUnixDynamic}.EncMode()
-	emTimeRFC3339, _       = cbor.EncOptions{Time: cbor.TimeRFC3339}.EncMode()
-	emTimeRFC3339Nano, _   = cbor.EncOptions{Time: cbor.TimeRFC3339Nano}.EncMode()
+	emPreferred, _             = cbor.PreferredUnsortedEncOptions().EncMode()
+	emCanonical, _             = cbor.CanonicalEncOptions().EncMode()
+	emCoreDeterministic, _     = cbor.CoreDetEncOptions().EncMode()
+	emTimeUnix, _              = cbor.EncOptions{Time: cbor.TimeUnix}.EncMode()
+	emTimeUnixMicro, _         = cbor.EncOptions{Time: cbor.TimeUnixMicro}.EncMode()
+	emTimeUnixDynamic, _       = cbor.EncOptions{Time: cbor.TimeUnixDynamic}.EncMode()
+	emTimeRFC3339, _           = cbor.EncOptions{Time: cbor.TimeRFC3339}.EncMode()
+	emTimeRFC3339Nano, _       = cbor.EncOptions{Time: cbor.TimeRFC3339Nano}.EncMode()
+	emBigIntConvertShortest, _ = cbor.EncOptions{BigIntConvert: cbor.BigIntConvertShortest}.EncMode()
+	emBigIntConvertNone, _     = cbor.EncOptions{BigIntConvert: cbor.BigIntConvertNone}.EncMode()
 )
 
 // Fuzz decodes->encodes->decodes CBOR data into different Go types and
@@ -247,6 +251,7 @@ func Fuzz(data []byte) int {
 		func() interface{} { return new(cbor.RawTag) },
 		func() interface{} { return new(marshaller) },
 		func() interface{} { return new(time.Time) },
+		func() interface{} { return new(big.Int) },
 		func() interface{} { return new(claims) },
 		func() interface{} { return new(signedCWT) },
 		func() interface{} { return new(nestedCWT) },
@@ -273,14 +278,12 @@ func Fuzz(data []byte) int {
 		// Decode with ExtraReturnErrors set to ExtraDecErrorUnknownField.
 		fuzzUnknownField(data, ctor())
 
-		rv := reflect.ValueOf(v1)
-		for rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
-			rv = rv.Elem()
-		}
-
-		if rv.IsValid() && rv.Type() == typeTime {
-			t := rv.Interface().(time.Time)
-			fuzzTime(&t)
+		switch v := v1.(type) {
+		case *time.Time:
+			fuzzTime(v)
+			continue
+		case *big.Int:
+			fuzzBigInt(v)
 			continue
 		}
 
@@ -314,6 +317,12 @@ func Fuzz(data []byte) int {
 			panic(err)
 		}
 
+		// Encode with BigIntConvert set to BigIntConvertNone (encode big.Int as CBOR tag 2/3)
+		enc = emBigIntConvertNone.NewEncoder(ioutil.Discard)
+		if err := enc.Encode(v1); err != nil {
+			panic(err)
+		}
+
 		// Encode with "Core Deterministic" encoding options
 		var buf bytes.Buffer
 		enc = emCoreDeterministic.NewEncoder(&buf)
@@ -328,7 +337,8 @@ func Fuzz(data []byte) int {
 		}
 
 		// Empty RawMessage can't be round tripped.
-		if x, ok := v1.(*coseKey); ok {
+		switch x := v1.(type) {
+		case *coseKey:
 			if x.CrvOrNOrK == nil {
 				v2.(*coseKey).CrvOrNOrK = nil
 			}
@@ -338,16 +348,22 @@ func Fuzz(data []byte) int {
 			if x.Y == nil {
 				v2.(*coseKey).Y = nil
 			}
-		}
-		if x, ok := v1.(*attestationObject); ok {
+		case *attestationObject:
 			if x.AttStmt == nil {
 				v2.(*attestationObject).AttStmt = nil
 			}
 		}
 
-		// Skip equal test for objects with time.Time as an element for now
-		if !hasTimeElem(reflect.ValueOf(v1)) && !DeepEqual(v1, v2) {
-			panic(fmt.Sprintf("Go type %s not equal: v1 %+v, v2 %+v", reflect.TypeOf(v1), v1, v2))
+		// Skip equal test for objects with time.Time or big.Int as an element
+		if !hasType(reflect.ValueOf(v1), typeTime) && !hasType(reflect.ValueOf(v1), typeBigInt) && !DeepEqual(v1, v2) {
+			rv1, rv2 := reflect.ValueOf(v1), reflect.ValueOf(v2)
+			for rv1.Kind() == reflect.Ptr || rv1.Kind() == reflect.Interface {
+				rv1 = rv1.Elem()
+			}
+			for rv2.Kind() == reflect.Ptr || rv2.Kind() == reflect.Interface {
+				rv2 = rv2.Elem()
+			}
+			panic(fmt.Sprintf("not equal: v1 %v (%s), v2 %v (%s)", rv1.Interface(), rv1.Type(), rv2.Interface(), rv2.Type()))
 		}
 	}
 	return score
@@ -441,40 +457,84 @@ func fuzzTime(t *time.Time) {
 	}
 }
 
-func hasTimeElem(rv reflect.Value) bool {
+func fuzzBigInt(bi *big.Int) {
+	// Encode big.Int to shortest int representation, decode it, and compare results.
+	var b bytes.Buffer
+	enc := emBigIntConvertShortest.NewEncoder(&b)
+	if err := enc.Encode(bi); err != nil {
+		panic(err)
+	}
+	bib := b.Bytes()
+	if len(bib) < 1 {
+		panic(fmt.Sprintf("BigIntConvertShortest encoding doesn't produce CBOR integer data: 0x%x", bib))
+	}
+	if bib[0]&0xe0 != 0x00 && bib[0]&0xe0 != 0x20 && bib[0] != 0xc2 && bib[0] != 0xc3 {
+		panic(fmt.Sprintf("BigIntConvertShortest encoding doesn't produce CBOR integer data: 0x%x", bib))
+	}
+	var bi1 big.Int
+	dec := cbor.NewDecoder(&b)
+	if err := dec.Decode(&bi1); err != nil {
+		panic(err)
+	}
+	if bi.Cmp(&bi1) != 0 {
+		panic(fmt.Sprintf("not equal: v1 %v (big.Int), v2 %v (big.Int)", bi, bi1))
+	}
+
+	// Encode big.Int to CBOR tag 2/3 data, decode it, and compare results.
+	b.Reset()
+	enc = emBigIntConvertNone.NewEncoder(&b)
+	if err := enc.Encode(bi); err != nil {
+		panic(err)
+	}
+	bib = b.Bytes()
+	if len(bib) < 2 {
+		panic(fmt.Sprintf("BigIntConvertNone encoding doesn't produce CBOR tag 2/3 data: 0x%x", bib))
+	}
+	if bib[0] != 0xc2 && bib[0] != 0xc3 {
+		panic(fmt.Sprintf("BigIntConvertNone encoding doesn't produce CBOR tag 2/3 data: 0x%x", bib))
+	}
+	var bi2 big.Int
+	dec = cbor.NewDecoder(&b)
+	if err := dec.Decode(&bi2); err != nil {
+		panic(err)
+	}
+	if bi.Cmp(&bi2) != 0 {
+		panic(fmt.Sprintf("not equal: v1 %v (big.Int), v2 %v (big.Int)", bi, bi2))
+	}
+}
+
+func hasType(rv reflect.Value, rt reflect.Type) bool {
 	if !rv.IsValid() {
 		return false
 	}
 
-	if rv.Type() == typeTime {
+	if rv.Type() == rt {
 		return true
 	}
 
 	switch rv.Kind() {
-	case reflect.Interface:
+	case reflect.Interface, reflect.Ptr:
 		if rv.IsNil() {
 			return false
 		}
-		return hasTimeElem(rv.Elem())
-	case reflect.Ptr:
-		return hasTimeElem(rv.Elem())
+		return hasType(rv.Elem(), rt)
 	case reflect.Struct:
 		for i, n := 0, rv.NumField(); i < n; i++ {
-			if hasTimeElem(rv.Field(i)) {
+			if hasType(rv.Field(i), rt) {
 				return true
 			}
 		}
 		return false
 	case reflect.Array, reflect.Slice:
 		for i := 0; i < rv.Len(); i++ {
-			if hasTimeElem(rv.Index(i)) {
+			if hasType(rv.Index(i), rt) {
 				return true
 			}
 		}
 		return false
 	case reflect.Map:
 		for _, k := range rv.MapKeys() {
-			if hasTimeElem(k) || hasTimeElem(rv.MapIndex(k)) {
+			if hasType(k, rt) || hasType(rv.MapIndex(k), rt) {
 				return true
 			}
 		}

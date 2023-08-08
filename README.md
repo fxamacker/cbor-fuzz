@@ -1,5 +1,7 @@
 # cbor-fuzz
 
+#### :warning: This project was deprecated and replaced by a private project to test [fxamacker/cbor](https://github.com/fxamacker/cbor) (years ago).  The new fuzz tests are written to be more effective at detecting codec issues and uses fewer hardcoded initial corpus.
+
 cbor-fuzz performs coverage-guided fuzzing for a [CBOR library](https://github.com/fxamacker/cbor) (fxamacker/cbor).
 
 Input data for fuzzing is inside the corpus folder: 
